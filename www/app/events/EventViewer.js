@@ -13,6 +13,11 @@ define(['app', 'events/factories'], function (app) {
             var blocklyWorkspace;
             var debounceTimer;
             var statusBarEl;
+            var headerResizeObserver;
+            var scriptHeaderEl;
+            var scriptContentEl;
+            var syncContentOffsetFrame;
+            var usesWindowResizeFallback;
 
             var ACE_SETTINGS_KEY = 'domoticz_ace_settings';
             var DEFAULT_SETTINGS = {
@@ -121,6 +126,9 @@ define(['app', 'events/factories'], function (app) {
                             initAce(eventData)
                         }
 
+                        bindScriptHeaderResize();
+                        syncContentOffsetWithHeader();
+
                         $element.on('keydown', function(event) {
                             if ((event.ctrlKey || event.metaKey) && String.fromCharCode(event.which).toLowerCase() === 's') {
 
@@ -150,8 +158,58 @@ define(['app', 'events/factories'], function (app) {
                         statusBarEl.parentNode.removeChild(statusBarEl);
                         statusBarEl = null;
                     }
+                    if (headerResizeObserver) {
+                        headerResizeObserver.disconnect();
+                        headerResizeObserver = null;
+                    }
+                    if (syncContentOffsetFrame) {
+                        window.cancelAnimationFrame(syncContentOffsetFrame);
+                        syncContentOffsetFrame = null;
+                    }
+                    scriptHeaderEl = null;
+                    scriptContentEl = null;
+                    if (usesWindowResizeFallback) {
+                        angular.element(window).off('resize', requestContentOffsetSync);
+                        usesWindowResizeFallback = false;
+                    }
                     $element.off('keydown');
                 });
+            }
+
+            function bindScriptHeaderResize() {
+                scriptHeaderEl = $element[0].querySelector('.events-editor-file__header--script');
+                scriptContentEl = $element[0].querySelector('.events-editor-file__content--script');
+
+                if (!scriptHeaderEl || !scriptContentEl) {
+                    return;
+                }
+
+                if (typeof window.ResizeObserver !== 'undefined') {
+                    headerResizeObserver = new ResizeObserver(requestContentOffsetSync);
+                    headerResizeObserver.observe(scriptHeaderEl);
+                } else {
+                    usesWindowResizeFallback = true;
+                    angular.element(window).on('resize', requestContentOffsetSync);
+                }
+            }
+
+            function requestContentOffsetSync() {
+                if (syncContentOffsetFrame) {
+                    window.cancelAnimationFrame(syncContentOffsetFrame);
+                }
+
+                syncContentOffsetFrame = window.requestAnimationFrame(function () {
+                    syncContentOffsetFrame = null;
+                    syncContentOffsetWithHeader();
+                });
+            }
+
+            function syncContentOffsetWithHeader() {
+                if (!scriptHeaderEl || !scriptContentEl) {
+                    return;
+                }
+
+                scriptContentEl.style.top = scriptHeaderEl.offsetHeight + 'px';
             }
 
             function isTriggerAvailable() {
