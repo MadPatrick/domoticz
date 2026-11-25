@@ -37,8 +37,8 @@
 }
 #hardwarecontent .dz-plugin-addbar {
     display:flex !important; align-items:center !important; gap:18px !important;
-    padding:16px 0 0 !important; margin:16px 0 0 !important;
-    border-top:1px solid var(--dzpt-border-soft) !important;
+    padding:0 0 16px !important; margin:0 0 16px !important;
+    border-bottom:1px solid var(--dzpt-border-soft) !important;
 }
 #hardwarecontent .dz-plugin-addbar-label {
     flex:0 0 auto !important; min-width:92px !important; color:var(--dzpt-text) !important;
@@ -1047,7 +1047,7 @@ html.dz-plugin-modal-open #notification { z-index:1045 !important; }
     $('<h2>', { text: 'Installed plugins' }).appendTo($installedHeader);
     $('<span>', { text: 'Click a tile to open its settings.' }).appendTo($installedHeader);
     $('<div>', { 'class': 'dz-plugin-grid', role: 'list' }).appendTo($manager);
-    $addBar.appendTo($manager);
+    $addBar.prependTo($manager);
 
     var $pageHeader = $root.find('> .page-header-small').first();
     if ($pageHeader.length) {
