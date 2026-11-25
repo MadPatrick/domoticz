@@ -1,4 +1,4 @@
-/* Domoticz Hardware Plugin Tiles v5 - globally loaded, theme independent */
+/* Domoticz Hardware Plugin Tiles v6 - globally loaded, theme independent, settings in a modal */
 (function ($, window, document) {
   'use strict';
 
@@ -231,6 +231,52 @@
 #hardwarecontent .dz-hardware-settings-panel #divpythonplugin li {
     margin:1px 0 !important;
 }
+#hardwarecontent .dz-hardware-settings-panel tr.dz-plugin-hidden-row { display:none !important; }
+html.dz-plugin-modal-open, html.dz-plugin-modal-open body { overflow:hidden !important; }
+html.dz-plugin-modal-open #notification { z-index:1045 !important; }
+#hardwarecontent .dz-plugin-modal {
+    position:fixed !important; inset:0 !important; z-index:1035 !important;
+    display:none; align-items:flex-start !important; justify-content:center !important;
+    padding:24px 16px !important; background:rgba(0,0,0,.55) !important;
+    box-sizing:border-box !important; overflow:hidden !important;
+}
+#hardwarecontent .dz-plugin-modal.is-open { display:flex !important; }
+#hardwarecontent .dz-plugin-modal-dialog {
+    position:relative !important; display:flex !important; flex-direction:column !important;
+    width:min(980px,100%) !important; max-height:calc(100vh - 48px) !important; margin:0 !important;
+    color:var(--dzpt-text) !important; border:1px solid var(--dzpt-border) !important;
+    border-radius:12px !important; background:var(--dzpt-modal-bg,#202020) !important;
+    background-image:none !important; box-shadow:0 18px 48px rgba(0,0,0,.45) !important;
+    box-sizing:border-box !important; overflow:hidden !important;
+}
+#hardwarecontent .dz-plugin-modal-dialog:focus { outline:0 !important; }
+#hardwarecontent .dz-plugin-modal .dz-plugin-settings-header {
+    flex:0 0 auto !important; margin:0 !important; padding:14px 56px 12px 18px !important;
+    border:0 !important; border-bottom:1px solid var(--dzpt-border-soft) !important;
+    border-radius:0 !important; background:var(--dzpt-surface) !important;
+}
+#hardwarecontent .dz-plugin-modal .dz-plugin-settings-header + .dz-hardware-settings-panel {
+    flex:1 1 auto !important; min-height:0 !important; margin:0 !important;
+    padding:12px 18px 0 !important; border:0 !important; border-radius:0 !important;
+    background:transparent !important; overflow-y:auto !important; overflow-x:hidden !important;
+}
+#hardwarecontent .dz-plugin-modal #updelclr {
+    position:sticky !important; bottom:0 !important; z-index:3 !important;
+    width:calc(100% + 36px) !important; margin:8px -18px 0 !important;
+    border-top:1px solid var(--dzpt-border-soft) !important;
+    background:var(--dzpt-modal-bg,#202020) !important;
+}
+#hardwarecontent .dz-plugin-modal-close {
+    -webkit-appearance:none !important; appearance:none !important;
+    position:absolute !important; top:10px !important; right:10px !important; z-index:4 !important;
+    display:inline-flex !important; align-items:center !important; justify-content:center !important;
+    width:34px !important; height:34px !important; margin:0 !important; padding:0 !important;
+    color:var(--dzpt-text) !important; border:1px solid var(--dzpt-border-soft) !important;
+    border-radius:8px !important; background:var(--dzpt-surface) !important; background-image:none !important;
+    font-size:22px !important; line-height:1 !important; box-shadow:none !important; cursor:pointer !important;
+}
+#hardwarecontent .dz-plugin-modal-close:hover { border-color:var(--dzpt-accent) !important; background:var(--dzpt-surface-hover) !important; }
+#hardwarecontent .dz-plugin-modal-close:focus-visible { outline:2px solid var(--dzpt-accent) !important; outline-offset:2px !important; }
 @media (max-width:900px) {
     #hardwarecontent .dz-hardware-settings-panel table.dz-flex-table > tbody > tr.dz-field-pair-row {
         flex:0 0 100% !important; max-width:100% !important;
@@ -241,6 +287,8 @@
     #hardwarecontent .dz-plugin-addbar-controls { align-items:stretch !important; flex-direction:column !important; }
     #hardwarecontent .dz-plugin-add-select,#hardwarecontent .dz-plugin-add-button { width:100% !important; max-width:none !important; }
     #hardwarecontent .dz-plugin-grid { grid-template-columns:1fr !important; }
+    #hardwarecontent .dz-plugin-modal { padding:8px !important; }
+    #hardwarecontent .dz-plugin-modal-dialog { max-height:calc(100vh - 16px) !important; }
 }`;
     document.head.appendChild(style);
   }
@@ -286,6 +334,9 @@
 
   var managerId = 'dz-plugin-manager';
   var settingsHeaderId = 'dz-plugin-settings-header';
+  var modalId = 'dz-plugin-settings-modal';
+  var modalReturnFocus = null;
+  var suppressModalClose = false;
   var activePluginIdx = null;
   var availableHardware = [];
   var availableHardwareLoaded = false;
@@ -636,24 +687,87 @@
   }
 
   function restoreDefaultActions() {
-    getTypeRow().show();
+    getTypeRow().removeClass('dz-plugin-hidden-row');
     getAddAction().show().attr('data-i18n', 'Add').text(t('Add', 'Add'));
     getUpdateAction().attr('data-i18n', 'Update').text(t('Update', 'Update'));
     getDeleteAction().attr('data-i18n', 'Delete').text(t('Delete', 'Delete'));
   }
 
   function setPluginEditActions() {
-    getTypeRow().hide();
+    getTypeRow().addClass('dz-plugin-hidden-row');
     getAddAction().hide();
     getUpdateAction().attr('data-i18n', 'Save').text(t('Save', 'Save'));
     getDeleteAction().attr('data-i18n', 'Delete').text(t('Delete', 'Delete'));
   }
 
   function setPluginAddActions() {
-    getTypeRow().hide();
+    getTypeRow().addClass('dz-plugin-hidden-row');
     getAddAction().show().removeAttr('data-i18n').text('Save new plugin');
     getUpdateAction().hide();
     getDeleteAction().hide();
+  }
+
+  function getModal() {
+    return $('#' + modalId);
+  }
+
+  function isModalOpen() {
+    return getModal().hasClass('is-open');
+  }
+
+  function isOtherDialogOpen() {
+    // Domoticz' own confirmations (bootbox / bootstrap modal, jQuery UI dialogs)
+    // sit on top of the settings modal; Esc and outside clicks belong to them.
+    return $('.modal:visible, .bootbox:visible, .ui-dialog:visible').length > 0;
+  }
+
+  function openSettingsModal() {
+    var $modal = getModal();
+    if (!$modal.length) {
+      return;
+    }
+    if (!isModalOpen()) {
+      modalReturnFocus = document.activeElement;
+    }
+    $modal.addClass('is-open').attr('aria-hidden', 'false');
+    $('html').addClass('dz-plugin-modal-open');
+    tagSettingsFieldRows();
+    $modal.find('.dz-hardware-settings-panel').scrollTop(0);
+    $modal.find('.dz-plugin-modal-dialog').trigger('focus');
+  }
+
+  function closeSettingsModal() {
+    var $modal = getModal();
+    $('html').removeClass('dz-plugin-modal-open');
+    if (!$modal.length || !isModalOpen()) {
+      return;
+    }
+    $modal.removeClass('is-open').attr('aria-hidden', 'true');
+    selectTile(null);
+
+    var returnTo = modalReturnFocus;
+    modalReturnFocus = null;
+    if (returnTo && document.body.contains(returnTo) && typeof returnTo.focus === 'function') {
+      returnTo.focus();
+    }
+  }
+
+  function trapModalFocus(event) {
+    var $focusable = getModal()
+      .find('button, a[href], a[role="button"], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      .filter(':visible:not(:disabled)');
+    if (!$focusable.length) {
+      return;
+    }
+    var first = $focusable.get(0);
+    var last = $focusable.get($focusable.length - 1);
+    if (event.shiftKey && (document.activeElement === first || !getModal()[0].contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   function selectTile(idx) {
@@ -753,7 +867,12 @@
         updateTileEnabledState($tile, nextEnabled);
 
         if (typeof window.RefreshHardwareTable === 'function') {
-          window.RefreshHardwareTable();
+          suppressModalClose = true;
+          try {
+            window.RefreshHardwareTable();
+          } finally {
+            suppressModalClose = false;
+          }
         } else {
           scheduleRender(0);
         }
@@ -825,7 +944,7 @@
     return !!row;
   }
 
-  function showPluginSettings(item, typeName, scrollToSettings) {
+  function showPluginSettings(item, typeName, openModal) {
     if (!selectHardwareRow(item.idx)) {
       return false;
     }
@@ -840,11 +959,8 @@
     );
     tagSettingsFieldRows();
 
-    if (scrollToSettings) {
-      var $settings = getHardwareRoot().find('.page-content-container').first();
-      if ($settings.length) {
-        $('html, body').stop(true).animate({ scrollTop: $settings.offset().top - 15 }, 250);
-      }
+    if (openModal) {
+      openSettingsModal();
     }
 
     return true;
@@ -884,10 +1000,7 @@
       'new'
     );
 
-    var $settings = getHardwareRoot().find('.page-content-container').first();
-    if ($settings.length) {
-      $('html, body').stop(true).animate({ scrollTop: $settings.offset().top - 15 }, 250);
-    }
+    openSettingsModal();
   }
 
   function createManager() {
@@ -931,7 +1044,7 @@
     }).appendTo($controls);
     var $installedHeader = $('<div>', { 'class': 'dz-plugin-section-heading' }).appendTo($manager);
     $('<h2>', { text: 'Installed plugins' }).appendTo($installedHeader);
-    $('<span>', { text: 'Select a tile to show its settings.' }).appendTo($installedHeader);
+    $('<span>', { text: 'Click a tile to open its settings.' }).appendTo($installedHeader);
     $('<div>', { 'class': 'dz-plugin-grid', role: 'list' }).appendTo($manager);
     $addBar.appendTo($manager);
 
@@ -949,8 +1062,52 @@
     $('<h2>', { 'class': 'dz-plugin-settings-title' }).appendTo($settingsHeader);
     $('<div>', { 'class': 'dz-plugin-settings-subtitle' }).appendTo($settingsHeader);
 
-    $settingsHeader.insertAfter($manager);
-    $settings.insertAfter($settingsHeader).addClass('dz-hardware-settings-panel');
+    // The settings panel (incl. Domoticz' own #updelclr buttons) lives in a
+    // modal overlay. It stays inside #hardwarecontent so Domoticz' selectors
+    // ('#hardwarecontent #...') and the styles above keep working.
+    var $modal = $('<div>', {
+      id: modalId,
+      'class': 'dz-plugin-modal',
+      'aria-hidden': 'true'
+    });
+    var $dialog = $('<div>', {
+      'class': 'dz-plugin-modal-dialog',
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-labelledby': settingsHeaderId + '-title',
+      tabindex: '-1'
+    }).appendTo($modal);
+    $('<button>', {
+      type: 'button',
+      'class': 'dz-plugin-modal-close',
+      'aria-label': t('Close', 'Close'),
+      title: t('Close', 'Close'),
+      html: '&times;'
+    }).appendTo($dialog);
+    $settingsHeader.find('.dz-plugin-settings-title').attr('id', settingsHeaderId + '-title');
+    $settingsHeader.appendTo($dialog);
+    $settings.appendTo($dialog).addClass('dz-hardware-settings-panel');
+    $modal.insertAfter($manager);
+
+    var pointerStartedOnBackdrop = false;
+    $modal
+      .on('mousedown.dzPluginTiles', function (event) {
+        pointerStartedOnBackdrop = event.target === this;
+      })
+      .on('click.dzPluginTiles', function (event) {
+        if (event.target === this && pointerStartedOnBackdrop && !isOtherDialogOpen()) {
+          closeSettingsModal();
+        }
+        pointerStartedOnBackdrop = false;
+      })
+      .on('click.dzPluginTiles', '.dz-plugin-modal-close', function () {
+        closeSettingsModal();
+      })
+      .on('keydown.dzPluginTiles', function (event) {
+        if (event.key === 'Tab' && !isOtherDialogOpen()) {
+          trapModalFocus(event);
+        }
+      });
 
     $tableWrapper.hide();
 
@@ -1120,7 +1277,13 @@
 
     var original = window.RefreshHardwareTable;
     var wrapped = function () {
+      var closeAfter = isModalOpen() && !suppressModalClose;
       var result = original.apply(this, arguments);
+      // Domoticz only refreshes the table after a successful Add, Update or
+      // Delete; validation errors leave the modal open so they can be fixed.
+      if (closeAfter) {
+        closeSettingsModal();
+      }
       scheduleRender(20);
       return result;
     };
@@ -1141,7 +1304,17 @@
   }
 
   $(function () {
-    $(window).on('hashchange.dzPluginTiles', setupHardwarePluginTiles);
+    $(window).on('hashchange.dzPluginTiles', function () {
+      closeSettingsModal();
+      setupHardwarePluginTiles();
+    });
+
+    $(document).on('keydown.dzPluginTiles', function (event) {
+      if ((event.key === 'Escape' || event.key === 'Esc') && isModalOpen() && !isOtherDialogOpen()) {
+        event.preventDefault();
+        closeSettingsModal();
+      }
+    });
 
     var hardwareContent = document.getElementById('hardwarecontent');
     if (hardwareContent && typeof MutationObserver !== 'undefined') {
