@@ -231,7 +231,8 @@
 #hardwarecontent .dz-hardware-settings-panel #divpythonplugin li {
     margin:1px 0 !important;
 }
-#hardwarecontent .dz-hardware-settings-panel tr.dz-plugin-hidden-row { display:none !important; }
+#hardwarecontent .dz-hardware-settings-panel tr.dz-plugin-hidden-row,
+#hardwarecontent .dz-hardware-settings-panel table.dz-flex-table > tbody > tr.dz-plugin-hidden-row { display:none !important; }
 html.dz-plugin-modal-open, html.dz-plugin-modal-open body { overflow:hidden !important; }
 html.dz-plugin-modal-open #notification { z-index:1045 !important; }
 #hardwarecontent .dz-plugin-modal {
