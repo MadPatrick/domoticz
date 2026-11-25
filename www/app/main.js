@@ -31,6 +31,7 @@ require.config({
 		ChartLoader: 'log/ChartLoader',
 		ChartZoomer: 'log/ChartZoomer',
 		'gridstack': '../js/gridstack.min',
+		'plugin-tiles': '../js/plugin-tiles',
 		'dashboardDynamic/dashboardDynamic.module':       'dashboardDynamic/dashboardDynamic.module',
 		'dashboardDynamic/dashboardDynamicService':       'dashboardDynamic/dashboardDynamicService',
 		'dashboardDynamic/DashboardDynamicController':    'dashboardDynamic/DashboardDynamicController',
@@ -113,5 +114,5 @@ require.config({
 		'blockly-blocks': ['blockly'],
 		'blockly-msg-en': ['blockly']
 	},
-	deps: ['app', 'dzPicker.directive', 'icons/dzDeviceIcon', 'iconLibraries']
+	deps: ['app', 'dzPicker.directive', 'icons/dzDeviceIcon', 'iconLibraries', 'plugin-tiles']
 });
